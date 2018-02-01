@@ -1,0 +1,84 @@
+---
+title: "Apply Data Wrangling To My Project"
+author: "Carl Larson"
+date: "2/1/2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+##Intro Capstone Project Data Wrangling
+
+The data, in this case the gameflow table for basketball, needs some cleaning. 
+
+The time variable populates the x-axis, as is intuitive, and is central to the algorithm.
+
+There are 48 minutes in a standard (non-overtime) NBA game, and the clock resets at the end of the first three 12-minute quarters. 
+
+Because of this clock resetting, we will need to format the eventual time variable so it can be graphed as a linearly timed game.
+
+```{r}
+require(dplyr)
+require(tidyr)
+require(ggplot2)
+require(reshape2)
+
+df <- read.csv("/Users/EagleFace/Downloads/Gameflow of Bulls76ersApr282012.csv", header = FALSE)
+head(df)
+tail(df)
+```
+
+As shown above, the clock is V3 and the quarter is V4. 
+
+So ultimately the time variable we need is a function of these two. 
+
+```{r}
+
+df <- df[,1:4]
+gf <- separate(df, V3, c("MIN", "SEC"), sep = ":", remove = TRUE)
+head(gf)
+```
+
+Now we have cleaned-up minutes and seconds columns. 
+
+```{r}
+
+#Next we need to operate arithmetically on the time columns, 
+#so we need them as numeric
+gf$MIN <- as.numeric(gf$MIN)
+gf$SEC <- as.numeric(gf$SEC)
+
+#Now for the task of combining the columns for minutes and seconds into
+#one single column representing total minutes left, in decimal form.
+ft <- numeric(length = nrow(df))
+
+for(i in 1:(nrow(gf))){
+  while(gf$V4[i] == 1){
+    ft[i] <- (gf$MIN[i] + (gf$SEC[i]/60) + 36)
+      (i=i+1)}
+
+  while(gf$V4[i] == 2){
+    ft[i] <- (gf$MIN[i] + (gf$SEC[i]/60) + 24)
+      (i=i+1)}
+
+  while(gf$V4[i] == 3){
+    ft[i] <- (gf$MIN[i] + (gf$SEC[i]/60) + 12)
+      (i=i+1)}
+
+  while(gf$V4[i] == 4){
+    ft[i] <- (gf$MIN[i] + (gf$SEC[i]/60))
+    if(i==nrow(gf)){break}
+    else{
+      (i=i+1)}}}
+```
+
+Just to take a look, we can add this vector "ft" back into the dataframe "df" and then see a glimpse of its final few observations. 
+
+```{r}
+#Adding this column to the dataframe and taking a look at it. 
+df$ft <- ft
+tail(df)
+```
+
+Now our dataframe has exactly what we want, for the time variable, minutes left, in its column "ft." We can see that as the clock counts down seconds, ft is counting down decimalized minutes, which is the formatting we need for the eventual algorithm.
+
